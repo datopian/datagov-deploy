@@ -1,3 +1,8 @@
+INVENTORY_ENVIRONMENTS := \
+  mgmt \
+  production \
+  staging
+
 KITCHEN_SUITES := \
   crm-web \
   dashboard-web
@@ -9,6 +14,9 @@ MOLECULE_SUITES := \
   software/ckan/inventory \
   software/ckan/native-login \
   software/common/php-fixes
+
+# Create lint-<inventory> targets
+LINT_TARGETS := $(patsubst %,lint-%,$(INVENTORY_ENVIRONMENTS))
 
 # Create test-kitchen-<suite> targets
 KITCHEN_SUITE_TARGETS := $(patsubst %,test-kitchen-%,$(KITCHEN_SUITES))
@@ -37,8 +45,10 @@ setup:
 	pipenv install --dev
 	bundle install
 
-lint:
-	ansible-playbook --syntax-check ansible/*.yml
+$(LINT_TARGETS):
+	ANSIBLE_INVENTORY_ANY_UNPARSED_IS_FAILED=1 ansible-playbook -i ansible/inventories/$(subst lint-,,$@) --syntax-check ansible/*.yml
+
+lint: $(LINT_TARGETS)
 	ansible-lint -v -x ANSIBLE0010 --exclude=ansible/roles/vendor ansible/*.yml
 
 $(KITCHEN_SUITE_TARGETS):
